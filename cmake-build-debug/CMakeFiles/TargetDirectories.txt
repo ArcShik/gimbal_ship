@@ -1,0 +1,3 @@
+D:/code_temp/gimbal_ship/TEST_LAN8742/poll_R_T/gimbal/cmake-build-debug/CMakeFiles/gimbal.elf.dir
+D:/code_temp/gimbal_ship/TEST_LAN8742/poll_R_T/gimbal/cmake-build-debug/CMakeFiles/edit_cache.dir
+D:/code_temp/gimbal_ship/TEST_LAN8742/poll_R_T/gimbal/cmake-build-debug/CMakeFiles/rebuild_cache.dir

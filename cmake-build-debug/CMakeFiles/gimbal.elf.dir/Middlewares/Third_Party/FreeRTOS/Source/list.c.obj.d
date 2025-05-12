@@ -1,0 +1,32 @@
+CMakeFiles/gimbal.elf.dir/Middlewares/Third_Party/FreeRTOS/Source/list.c.obj: \
+ D:\code_temp\gimbal_ship\TEST_LAN8742\poll_R_T\gimbal\Middlewares\Third_Party\FreeRTOS\Source\list.c \
+ d:\stm32\gcc-arm-none-eabi-10.3-2021.10\arm-none-eabi\include\stdlib.h \
+ d:\stm32\gcc-arm-none-eabi-10.3-2021.10\arm-none-eabi\include\machine\ieeefp.h \
+ d:\stm32\gcc-arm-none-eabi-10.3-2021.10\arm-none-eabi\include\_ansi.h \
+ d:\stm32\gcc-arm-none-eabi-10.3-2021.10\arm-none-eabi\include\newlib.h \
+ d:\stm32\gcc-arm-none-eabi-10.3-2021.10\arm-none-eabi\include\_newlib_version.h \
+ d:\stm32\gcc-arm-none-eabi-10.3-2021.10\arm-none-eabi\include\sys\config.h \
+ d:\stm32\gcc-arm-none-eabi-10.3-2021.10\arm-none-eabi\include\sys\features.h \
+ d:\stm32\gcc-arm-none-eabi-10.3-2021.10\lib\gcc\arm-none-eabi\10.3.1\include\stddef.h \
+ d:\stm32\gcc-arm-none-eabi-10.3-2021.10\arm-none-eabi\include\sys\reent.h \
+ d:\stm32\gcc-arm-none-eabi-10.3-2021.10\arm-none-eabi\include\_ansi.h \
+ d:\stm32\gcc-arm-none-eabi-10.3-2021.10\arm-none-eabi\include\sys\_types.h \
+ d:\stm32\gcc-arm-none-eabi-10.3-2021.10\arm-none-eabi\include\machine\_types.h \
+ d:\stm32\gcc-arm-none-eabi-10.3-2021.10\arm-none-eabi\include\machine\_default_types.h \
+ d:\stm32\gcc-arm-none-eabi-10.3-2021.10\arm-none-eabi\include\sys\lock.h \
+ d:\stm32\gcc-arm-none-eabi-10.3-2021.10\arm-none-eabi\include\sys\cdefs.h \
+ d:\stm32\gcc-arm-none-eabi-10.3-2021.10\arm-none-eabi\include\machine\stdlib.h \
+ d:\stm32\gcc-arm-none-eabi-10.3-2021.10\arm-none-eabi\include\alloca.h \
+ D:\code_temp\gimbal_ship\TEST_LAN8742\poll_R_T\gimbal\Middlewares\Third_Party\FreeRTOS\Source\include/FreeRTOS.h \
+ d:\stm32\gcc-arm-none-eabi-10.3-2021.10\lib\gcc\arm-none-eabi\10.3.1\include\stdint.h \
+ d:\stm32\gcc-arm-none-eabi-10.3-2021.10\arm-none-eabi\include\stdint.h \
+ d:\stm32\gcc-arm-none-eabi-10.3-2021.10\arm-none-eabi\include\sys\_intsup.h \
+ d:\stm32\gcc-arm-none-eabi-10.3-2021.10\arm-none-eabi\include\sys\_stdint.h \
+ D:\code_temp\gimbal_ship\TEST_LAN8742\poll_R_T\gimbal\Core\Inc/FreeRTOSConfig.h \
+ D:\code_temp\gimbal_ship\TEST_LAN8742\poll_R_T\gimbal\Middlewares\Third_Party\FreeRTOS\Source\include/projdefs.h \
+ D:\code_temp\gimbal_ship\TEST_LAN8742\poll_R_T\gimbal\Middlewares\Third_Party\FreeRTOS\Source\include/portable.h \
+ D:\code_temp\gimbal_ship\TEST_LAN8742\poll_R_T\gimbal\Middlewares\Third_Party\FreeRTOS\Source\include/deprecated_definitions.h \
+ D:\code_temp\gimbal_ship\TEST_LAN8742\poll_R_T\gimbal\Middlewares\Third_Party\FreeRTOS\Source\portable\GCC\ARM_CM4F/portmacro.h \
+ D:\code_temp\gimbal_ship\TEST_LAN8742\poll_R_T\gimbal\Middlewares\Third_Party\FreeRTOS\Source\include/mpu_wrappers.h \
+ d:\stm32\gcc-arm-none-eabi-10.3-2021.10\arm-none-eabi\include\reent.h \
+ D:\code_temp\gimbal_ship\TEST_LAN8742\poll_R_T\gimbal\Middlewares\Third_Party\FreeRTOS\Source\include/list.h
