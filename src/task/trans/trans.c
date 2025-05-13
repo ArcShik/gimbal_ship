@@ -134,7 +134,9 @@ void tcprev_control_task(void)
                 }
             }
             netbuf_delete(recvbuf); // 释放接收缓冲区
-            if (length > 0) {
+            if (length > 0)
+            {
+                trans_sub_pull();
                 tcp_input(tcp_rx_buffer, length);
                 trans_pub_push();
                 memset(tcp_rx_buffer, 0, sizeof(tcp_rx_buffer));
@@ -243,23 +245,10 @@ static void tcp_client_thread(void *parg)
 {
     sLwipDev_t *psLwipDev = (sLwipDev_t *)parg;
     err_t ERR;
-    int heap;
-    int i;
-
-    heap=xPortGetFreeHeapSize();
-    printf("Free heap: %d\n", heap);
-    if(heap){
-        i++;
-    }
 
     while (psLwipDev != NULL)
     {
         // 创建一个套接字
-        heap=xPortGetFreeHeapSize();
-        printf("Free heap: %d\n", heap);
-        if(heap){
-            i++;
-        }
         socket = netconn_new(NETCONN_TCP);
         if (socket == NULL)
         {
@@ -267,36 +256,20 @@ static void tcp_client_thread(void *parg)
             vTaskDelay(100);
             continue; // TCP连接创建失败则重新创建
         }
-
         // 绑定IP端口，并连接服务器
         ip_addr_t LocalIP = {0};
         ip_addr_t RemoteIP = {0};
         IP4_ADDR(&LocalIP, psLwipDev->localip[0], psLwipDev->localip[1], psLwipDev->localip[2], psLwipDev->localip[3]);
         IP4_ADDR(&RemoteIP, psLwipDev->remoteip[0], psLwipDev->remoteip[1], psLwipDev->remoteip[2], psLwipDev->remoteip[3]);
         netconn_bind(socket, &LocalIP, psLwipDev->localport); // 绑定本地端口和IP
-        heap=xPortGetFreeHeapSize();
-        printf("Free heap: %d\n", heap);
-        if(heap){
-            i++;
-        }
         ERR=netconn_connect(socket, &RemoteIP, psLwipDev->remoteport);
 
          if (ERR != ERR_OK) // 连接服务器
          {
-             heap=xPortGetFreeHeapSize();
-             printf("Free heap: %d\n", heap);
-             if(heap){
-                 i++;
-             }
              netconn_delete(socket); // 服务器连接失败，删除连接
              vTaskDelay(100);
              continue;
          }
-         heap=xPortGetFreeHeapSize();
-         printf("Free heap: %d\n", heap);
-        if(heap){
-            i++;
-        }
 
          connect_flag = pdTRUE; // 连接标志置位
 
@@ -457,6 +430,19 @@ static void tcp_input(uint8_t *recvbuf, uint32_t length)
 
         trans_fdb_data.yaw = *(float *)&temp_yaw;
         trans_fdb_data.pitch =*(float *)&temp_pitch;
+        if(gim_cmd.last_mode==GIMBAL_GYRO){
+            if(gim_cmd.ctrl_mode!=GIMBAL_GYRO){
+                trans_fdb_data.yaw=0;
+                trans_fdb_data.pitch=0;
+            }
+        }
+        if(gim_cmd.last_mode==GIMBAL_ECD){
+            if(gim_cmd.ctrl_mode!=GIMBAL_ECD){
+                trans_fdb_data.yaw=0;
+                trans_fdb_data.pitch=0;
+            }
+        }
+
 
         memset(&rpy_rx_data, 0, sizeof(rpy_rx_data));
     }

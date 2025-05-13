@@ -303,7 +303,7 @@ static int16_t motor_control_yaw(dji_motor_measure_t measure){
     {
         /* 注意负号 */
         pid_out_angle = pid_calculate(pid_angle, get_angle, gim_motor_ref[YAW]);
-        send_data = -pid_calculate(pid_speed, get_speed, pid_out_angle);
+        send_data = pid_calculate(pid_speed, get_speed, pid_out_angle);
 //        send_data=0;
 
     }
@@ -378,7 +378,7 @@ static int16_t motor_control_pitch(dji_motor_measure_t measure){
         /*串级pid的使用，角度环套在速度环上面*/
         /* 注意负号 */
         pid_out_angle = pid_calculate(pid_angle, get_angle, gim_motor_ref[PITCH]);
-        send_data = -pid_calculate(pid_speed, get_speed, pid_out_angle);
+        send_data = pid_calculate(pid_speed, get_speed, pid_out_angle);
     }
     else if(gim_cmd.ctrl_mode == GIMBAL_ECD  )  /* 编码器闭环 */
     {
@@ -387,9 +387,9 @@ static int16_t motor_control_pitch(dji_motor_measure_t measure){
         /* 注意负号 */
         send_data = -pid_calculate(pid_angle, get_angle, get_angle+gim_motor_ref[PITCH]);
         /* 限制云台俯仰角度 */
-        if((ins_data.pitch<145 &&  ins_data.pitch>0)|| (ins_data.pitch>-180 && ins_data.pitch<-80)){
-            send_data=0;
-        }
+//        if((ins_data.pitch<145 &&  ins_data.pitch>0)|| (ins_data.pitch>-180 && ins_data.pitch<-80)){
+//            send_data=0;
+//        }
 
     }
     else if(gim_cmd.ctrl_mode == GIMBAL_GYRO)  /* imu闭环 */

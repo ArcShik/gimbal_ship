@@ -55,8 +55,8 @@
 #define YAW_MOTOR_ID     0x201
 #define PITCH_MOTOR_ID   0x202
 
-#define CENTER_YAW   82      //云台yaw轴编码器归中值
-#define CENTER_PITCH 170        //云台pitch轴编码器归中值
+#define CENTER_YAW   50      //云台yaw轴编码器归中值
+#define CENTER_PITCH 168        //云台pitch轴编码器归中值
 
 
 /* 云台控制周期 (ms) */

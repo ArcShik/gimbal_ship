@@ -145,7 +145,7 @@ __attribute__((noreturn)) void ins_task_entry(void const *argument)
             // 500hz
             pulse = pid_calculate(imu_temp_pid, BMI088.temperature, IMU_TARGET_TEMP);
 
-            TIM_Set_PWM(&htim2, TIM_CHANNEL_2, pulse);
+//            TIM_Set_PWM(&htim2, TIM_CHANNEL_2, pulse);
         }
 
         heap=xPortGetFreeHeapSize();
