@@ -77,7 +77,7 @@
 /* ecd角度环 */
 #define YAW_KP_V_ECD             100
 #define YAW_KI_V_ECD             0
-#define YAW_KD_V_ECD             5
+#define YAW_KD_V_ECD             0
 #define YAW_INTEGRAL_V_ECD       0
 #define YAW_MAX_V_ECD            1000
 
@@ -104,7 +104,7 @@
 #define PITCH_INTEGRAL_V_IMU     0
 #define PITCH_MAX_V_IMU          450
 
-/* imu角度环 */
+/* ECD角度环 */
 #define PITCH_KP_V_ECD           100
 #define PITCH_KI_V_ECD           0
 #define PITCH_KD_V_ECD           0
