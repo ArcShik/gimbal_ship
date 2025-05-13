@@ -39,10 +39,9 @@ static void gimbal_sub_pull(void);
 #define Y 1
 #define Z 2
 static struct gimbal_controller_t{
-    /* 基于imu数据闭环，主要用于手动模式 */
-    pid_obj_t *pid_speed_imu;
-    pid_obj_t *pid_angle_imu;
-    /* 基于imu数据闭环，主要用于自动模式 */
+    pid_obj_t *pid_angle_ecd;    /* 基于编码器数据闭环*/
+    pid_obj_t *pid_angle_imu;    /* 基于imu数据闭环*/
+    /* 云台初次启动时归位到固定位置，目前没用到 */
     pid_obj_t *pid_speed_init;
     pid_obj_t *pid_angle_init;
 }gim_controller[GIM_MOTOR_NUM];
@@ -62,11 +61,11 @@ motor_config_t gimbal_motor_config[GIM_MOTOR_NUM] = {
         }
 };
 
-static float yaw_motor_relive_ecd, pitch_motor_relive_ecd; // 相对角度心下电机相对于初始位置的角度
+static float yaw_motor_relive_ecd, pitch_motor_relive_ecd; // 相对角度下电机相对于初始位置的角度
 static float yaw_motor_relive_gyro, pitch_motor_relive_gyro;//绝对角度下云台所处的角度
 
-static ramp_obj_t *yaw_ramp;//yaw 轴云台控制斜坡
-static ramp_obj_t *pit_ramp;//pitch 轴云台控制斜坡
+//static ramp_obj_t *yaw_ramp;//yaw 轴云台控制斜坡
+//static ramp_obj_t *pit_ramp;//pitch 轴云台控制斜坡
 
 static dji_motor_object_t *gim_motor[GIM_MOTOR_NUM];  // 底盘电机实例
  float gim_motor_ref[GIM_MOTOR_NUM]; // 电机控制期望值
@@ -83,8 +82,8 @@ static float gim_dt;
 void gimbal_task_init(void) {
     gimbal_sub_init();
     gimbal_motor_init();
-    yaw_ramp = ramp_register(0, BACK_CENTER_TIME/GIMBAL_PERIOD);
-    pit_ramp = ramp_register(0, BACK_CENTER_TIME/GIMBAL_PERIOD);
+//    yaw_ramp = ramp_register(0, BACK_CENTER_TIME/GIMBAL_PERIOD);
+//    pit_ramp = ramp_register(0, BACK_CENTER_TIME/GIMBAL_PERIOD);
 }
 void gimbal_control_task(void){
 
@@ -94,9 +93,7 @@ void gimbal_control_task(void){
         gimbal_sub_pull();
 
 
-//       yaw_motor_relive_ecd = gim_motor[YAW]->measure.total_angle;
-//       pitch_motor_relive_ecd = gim_motor[PITCH]->measure.total_angle;
-        yaw_motor_relive_ecd = -(gim_motor[YAW]->measure.total_angle-gim_fdb.yaw_offset_angle_total_ecd) / 1408.731f;
+        yaw_motor_relive_ecd = (gim_motor[YAW]->measure.total_angle-gim_fdb.yaw_offset_angle_total_ecd) / 1408.731f;
         pitch_motor_relive_ecd = -(gim_motor[PITCH]->measure.total_angle-gim_fdb.pit_offset_angle_ecd)/ 724.69f;
 
         yaw_motor_relive_gyro = ins_data.yaw_total_angle;
@@ -116,8 +113,8 @@ void gimbal_control_task(void){
                 dji_motor_relax(gim_motor[i]);
             }
             gim_fdb.back_mode = BACK_STEP;
-            yaw_ramp->reset(yaw_ramp, 0, BACK_CENTER_TIME/GIMBAL_PERIOD);
-            pit_ramp->reset(pit_ramp, 0, BACK_CENTER_TIME/GIMBAL_PERIOD);
+//            yaw_ramp->reset(yaw_ramp, 0, BACK_CENTER_TIME/GIMBAL_PERIOD);
+//            pit_ramp->reset(pit_ramp, 0, BACK_CENTER_TIME/GIMBAL_PERIOD);
             gim_fdb.yaw_offset_angle_total_gyro = ins_data.yaw_total_angle;
             gim_fdb.pit_offset_angle_gyro = ins_data.pitch;
             gim_fdb.yaw_offset_angle_total_ecd = gim_motor[YAW]->measure.total_angle;
@@ -230,13 +227,15 @@ static void gimbal_motor_init()
 //                                                        (PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement));
     pid_config_t yaw_angle_imu_config = INIT_PID_CONFIG(YAW_KP_V_IMU, YAW_KI_V_IMU, YAW_KD_V_IMU, YAW_INTEGRAL_V_IMU, YAW_MAX_V_IMU,
                                                         (PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement));
+    pid_config_t yaw_angle_ecd_config = INIT_PID_CONFIG(YAW_KP_V_ECD, YAW_KI_V_ECD, YAW_KD_V_ECD, YAW_INTEGRAL_V_ECD, YAW_MAX_V_ECD,
+                                                        (PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement));
 
     pid_config_t yaw_speed_init_config = INIT_PID_CONFIG(YAW_KP_V_INIT, YAW_KI_V_INIT, YAW_KD_V_INIT, YAW_INTEGRAL_V_INIT, YAW_MAX_V_INIT,
                                                       (PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement));
     pid_config_t yaw_angle_init_config = INIT_PID_CONFIG(YAW_KP_A_INIT, YAW_KI_A_INIT, YAW_KD_A_INIT, YAW_INTEGRAL_A_INIT, YAW_MAX_A_INIT,
                                                          (PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement));
 
-//    gim_controller[YAW].pid_speed_imu = pid_register(&yaw_speed_imu_config);
+    gim_controller[YAW].pid_angle_ecd = pid_register(&yaw_angle_ecd_config);
     gim_controller[YAW].pid_angle_imu = pid_register(&yaw_angle_imu_config);
     gim_controller[YAW].pid_speed_init = pid_register(&yaw_speed_init_config);
     gim_controller[YAW].pid_angle_init = pid_register(&yaw_angle_init_config);
@@ -247,13 +246,15 @@ static void gimbal_motor_init()
 //                                                          (PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement));
     pid_config_t pitch_angle_imu_config = INIT_PID_CONFIG(PITCH_KP_V_IMU, PITCH_KI_V_IMU, PITCH_KD_V_IMU, PITCH_INTEGRAL_V_IMU, PITCH_MAX_V_IMU,
                                                           (PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement));
+    pid_config_t pitch_angle_ecd_config = INIT_PID_CONFIG(PITCH_KP_V_ECD, PITCH_KI_V_ECD, PITCH_KD_V_ECD, PITCH_INTEGRAL_V_ECD, PITCH_MAX_V_ECD,
+                                                          (PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement));
 
     pid_config_t pitch_speed_init_config = INIT_PID_CONFIG(PITCH_KP_V_INIT, PITCH_KI_V_INIT, PITCH_KD_V_INIT, PITCH_INTEGRAL_V_INIT, PITCH_MAX_V_INIT,
                                                        (PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement));
     pid_config_t pitch_angle_init_config = INIT_PID_CONFIG(PITCH_KP_A_INIT, PITCH_KI_A_INIT, PITCH_KD_A_INIT, PITCH_INTEGRAL_A_INIT, PITCH_MAX_A_INIT,
                                                            (PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement));
 
-//    gim_controller[PITCH].pid_speed_imu = pid_register(&pitch_speed_imu_config);
+    gim_controller[PITCH].pid_angle_ecd = pid_register(&pitch_angle_ecd_config);
     gim_controller[PITCH].pid_angle_imu = pid_register(&pitch_angle_imu_config);
     gim_controller[PITCH].pid_speed_init = pid_register(&pitch_speed_init_config);
     gim_controller[PITCH].pid_angle_init = pid_register(&pitch_angle_init_config);
@@ -270,7 +271,7 @@ static int16_t motor_control_yaw(dji_motor_measure_t measure){
     switch (gim_cmd.ctrl_mode)
     {
         // TODO: 云台初始化模式加入斜坡算法，可以控制归中时间
-        case GIMBAL_INIT:
+        case GIMBAL_INIT:// 云台初次启动时归位到固定位置，目前没用到
             pid_speed = gim_controller[YAW].pid_speed_init;
             pid_angle = gim_controller[YAW].pid_angle_init;
             get_speed = ins_data.gyro[Z];//不用变
@@ -278,7 +279,7 @@ static int16_t motor_control_yaw(dji_motor_measure_t measure){
             break;
         case GIMBAL_ECD:
 //            pid_speed = gim_controller[YAW].pid_speed_imu;
-            pid_angle = gim_controller[YAW].pid_angle_imu;
+            pid_angle = gim_controller[YAW].pid_angle_ecd;
 //            get_speed = ins_data.gyro[Z];
 //            get_angle = ins_data.yaw_total_angle - gim_fdb.yaw_offset_angle_total;
             get_angle = yaw_motor_relive_ecd;
@@ -298,30 +299,29 @@ static int16_t motor_control_yaw(dji_motor_measure_t measure){
         pid_clear(pid_speed);
     }
 
-    if(gim_cmd.ctrl_mode == GIMBAL_INIT)  // 编码器闭环
+    if(gim_cmd.ctrl_mode == GIMBAL_INIT)  // 云台初次启动时归位到固定位置，目前没用到
     {
         /* 注意负号 */
-//        send_data = 5000;//往左转
         pid_out_angle = pid_calculate(pid_angle, get_angle, gim_motor_ref[YAW]);
-        send_data = -pid_calculate(pid_speed, get_speed, pid_out_angle);      // 电机转动正方向与imu相反
+        send_data = -pid_calculate(pid_speed, get_speed, pid_out_angle);
 //        send_data=0;
 
     }
-    else if( gim_cmd.ctrl_mode == GIMBAL_ECD ) /* imu闭环 */
+    else if( gim_cmd.ctrl_mode == GIMBAL_ECD ) /* 编码器闭环 */
     {
         /* 注意负号 */
 //        pid_out_angle = pid_calculate(pid_angle, get_angle, gim_motor_ref[YAW]);
-//        send_data = -pid_calculate(pid_speed, get_speed, pid_out_angle);      // 电机转动正方向与imu相反
+//        send_data = -pid_calculate(pid_speed, get_speed, pid_out_angle);
 
-        send_data = pid_calculate(pid_angle, get_angle, get_angle+gim_motor_ref[YAW]);      // 电机转动正方向与imu相反
+        send_data = pid_calculate(pid_angle, get_angle, get_angle+gim_motor_ref[YAW]);
     }
     else if(gim_cmd.ctrl_mode == GIMBAL_GYRO  ) /* imu闭环 */
     {
         /* 注意负号 */
 //        pid_out_angle = pid_calculate(pid_angle, get_angle, gim_motor_ref[YAW]);
-//        send_data = -pid_calculate(pid_speed, get_speed, pid_out_angle);      // 电机转动正方向与imu相反
+//        send_data = -pid_calculate(pid_speed, get_speed, pid_out_angle);
 
-        send_data = pid_calculate(pid_angle, get_angle, gim_motor_ref[YAW]);      // 电机转动正方向与imu相反
+        send_data = pid_calculate(pid_angle, get_angle, gim_motor_ref[YAW]);
     }
     else
     {
@@ -332,12 +332,6 @@ static int16_t motor_control_yaw(dji_motor_measure_t measure){
     return send_data;
 }
 
-//前期调试用
-
-int16_t send_data_temp_pitch;
-float get_speed_pitch, get_angle_pitch;
-float pid_out_angle_pitch;
-float ref=0;
 static int16_t motor_control_pitch(dji_motor_measure_t measure){
     /* PID局部指针，切换不同模式下PID控制器 */
     static pid_obj_t *pid_angle;
@@ -349,7 +343,7 @@ static int16_t motor_control_pitch(dji_motor_measure_t measure){
     switch (gim_cmd.ctrl_mode)
     {
         /* 根据云台模式，切换对应的控制器及观测量 */
-        case GIMBAL_INIT:// TODO: 云台初始化模式加入斜坡算法，可以控制归中时间
+        case GIMBAL_INIT:
             pid_speed = gim_controller[PITCH].pid_speed_init;
             pid_angle = gim_controller[PITCH].pid_angle_init;
             get_speed = ins_data.gyro[X];
@@ -357,7 +351,7 @@ static int16_t motor_control_pitch(dji_motor_measure_t measure){
             break;
         case GIMBAL_ECD:
 //            pid_speed = gim_controller[PITCH].pid_speed_imu;
-            pid_angle = gim_controller[PITCH].pid_angle_imu;
+            pid_angle = gim_controller[PITCH].pid_angle_ecd;
 //            get_speed = ins_data.gyro[X];
 //            get_angle = ins_data.pitch_gim - gim_fdb.pit_offset_angle;;
             get_angle = pitch_motor_relive_ecd;
@@ -366,7 +360,7 @@ static int16_t motor_control_pitch(dji_motor_measure_t measure){
 //            pid_speed = gim_controller[PITCH].pid_speed_imu;
             pid_angle = gim_controller[PITCH].pid_angle_imu;
 //            get_speed = ins_data.gyro[X];
-            get_angle = gim_motor[PITCH]->measure.total_angle ;;
+            get_angle = ins_data.pitch ;;
 
             break;
         default:
@@ -379,29 +373,39 @@ static int16_t motor_control_pitch(dji_motor_measure_t measure){
         pid_clear(pid_speed);
     }
 
-    if(gim_cmd.ctrl_mode == GIMBAL_INIT )  // 编码器闭环
+    if(gim_cmd.ctrl_mode == GIMBAL_INIT )  // 云台初次启动时归位到固定位置，目前没用到
     {
         /*串级pid的使用，角度环套在速度环上面*/
         /* 注意负号 */
         pid_out_angle = pid_calculate(pid_angle, get_angle, gim_motor_ref[PITCH]);
-        send_data = -pid_calculate(pid_speed, get_speed, pid_out_angle);      // 电机转动正方向与imu相反
+        send_data = -pid_calculate(pid_speed, get_speed, pid_out_angle);
     }
-    else if(gim_cmd.ctrl_mode == GIMBAL_ECD  )  /* imu闭环 */
+    else if(gim_cmd.ctrl_mode == GIMBAL_ECD  )  /* 编码器闭环 */
     {
         float temp_ref;
-        temp_ref=get_angle+gim_motor_ref[PITCH];
-        /* 限制云台俯仰角度 */
-/*        VAL_LIMIT((temp_ref), PIT_ANGLE_MIN, PIT_ANGLE_MAX);*/
+
         /* 注意负号 */
-        send_data = pid_calculate(pid_angle, get_angle, temp_ref);      // 电机转动正方向与imu相反
+        send_data = -pid_calculate(pid_angle, get_angle, get_angle+gim_motor_ref[PITCH]);
+        /* 限制云台俯仰角度 */
+        if((ins_data.pitch<145 &&  ins_data.pitch>0)|| (ins_data.pitch>-180 && ins_data.pitch<-80)){
+            send_data=0;
+        }
 
     }
     else if(gim_cmd.ctrl_mode == GIMBAL_GYRO)  /* imu闭环 */
     {
         /* 限制云台俯仰角度 */
-/*        VAL_LIMIT((temp_ref), PIT_ANGLE_MIN, PIT_ANGLE_MAX);*/
+        if(gim_motor_ref[PITCH]>0)
+        {
+            VAL_LIMIT(gim_motor_ref[PITCH], 140, 180);
+        }
+        else
+        {
+            VAL_LIMIT(gim_motor_ref[PITCH], -180, -70);
+        }
+
         /* 注意负号 */
-        send_data = pid_calculate(pid_angle, get_angle, gim_motor_ref[PITCH]);      // 电机转动正方向与imu相反
+        send_data = -pid_calculate(pid_angle, get_angle, gim_motor_ref[PITCH]);      // 电机转动正方向与imu相反
 
     }
     else

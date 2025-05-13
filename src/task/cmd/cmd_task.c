@@ -25,7 +25,8 @@ static void cmd_pub_push(void);
 static void cmd_sub_init(void);
 static void cmd_sub_pull(void);
 
-static float gyro_yaw_inherit;//记录切换到上位机控制时的角度，绝对控制时用
+//记录切换到上位机控制时的角度，绝对控制时用
+static float gyro_yaw_inherit;
 static float gyro_pitch_inherit;
 
 /* ------------------------------- 遥控数据转换为控制指令 ------------------------------ */
@@ -47,7 +48,7 @@ void cmd_control_task(void)
     remote_to_cmd();
     cmd_pub_push();
 }
-
+int multiple_yaw=20,multiple_pitch=5;
 /**
  * @brief 将遥控器数据转换为控制指令
  */
@@ -56,37 +57,27 @@ static void remote_to_cmd(void)
     /* 保存上一次数据 */
     gimbal_cmd_data.last_mode = gimbal_cmd_data.ctrl_mode;
 
-//    if (trans_fdb.control_mode==1 || trans_fdb.control_mode==2 )
-//    {
-//        gimbal_cmd_data.ctrl_mode=GIMBAL_AUTO;
-//    }
     *rc_last = *rc_now;
 
     if (gimbal_cmd_data.ctrl_mode==GIMBAL_ECD)
     {
-        gimbal_cmd_data.yaw = rc_now->ch4 * RC_RATIO * GIMBAL_RC_MOVE_RATIO_YAW + trans_fdb.yaw /*-fx * KB_RATIO * GIMBAL_PC_MOVE_RATIO_YAW*/;
-        gimbal_cmd_data.pitch = rc_now->ch2 * RC_RATIO * GIMBAL_RC_MOVE_RATIO_PIT + trans_fdb.pitch /*- fy * KB_RATIO * GIMBAL_PC_MOVE_RATIO_PIT*/;
+        gimbal_cmd_data.yaw = rc_now->ch4 * RC_RATIO * GIMBAL_RC_MOVE_RATIO_YAW + trans_fdb.yaw ;
+        gimbal_cmd_data.pitch = rc_now->ch2 * RC_RATIO * GIMBAL_RC_MOVE_RATIO_PIT + trans_fdb.pitch ;
 
-//        gyro_yaw_inherit = ins.yaw;
-//        gyro_pitch_inherit = ins.pitch;
+        gyro_yaw_inherit = ins.yaw_total_angle;
+        gyro_pitch_inherit = ins.pitch;
     }
     else if (gimbal_cmd_data.ctrl_mode==GIMBAL_GYRO)
     {
-        gimbal_cmd_data.yaw = trans_fdb.yaw + rc_now->ch4 * RC_RATIO * GIMBAL_RC_MOVE_RATIO_YAW;//上位机自瞄
-        gimbal_cmd_data.pitch = trans_fdb.pitch + rc_now->ch2 * RC_RATIO * GIMBAL_RC_MOVE_RATIO_PIT; /*- Ballistic * KB_RATIO * GIMBAL_PC_MOVE_RATIO_PIT*/;//上位机自瞄
+        gimbal_cmd_data.yaw = gyro_yaw_inherit+trans_fdb.yaw + multiple_yaw*rc_now->ch4 * RC_RATIO * GIMBAL_RC_MOVE_RATIO_YAW ;
+        gimbal_cmd_data.pitch = gyro_pitch_inherit+trans_fdb.pitch + multiple_pitch*rc_now->ch2 * RC_RATIO * GIMBAL_RC_MOVE_RATIO_PIT;
     }
-//        if(trans_fdb.control_mode==1){
-//          gimbal_cmd_data.yaw = trans_fdb.yaw + gyro_yaw_inherit + rc_now->ch4 * RC_RATIO * GIMBAL_RC_MOVE_RATIO_YAW;//上位机自瞄
-//          gimbal_cmd_data.pitch = trans_fdb.pitch + gyro_pitch_inherit + rc_now->ch2 * RC_RATIO * GIMBAL_RC_MOVE_RATIO_PIT; /*- Ballistic * KB_RATIO * GI*/
-//        }
-//        else{
-//            gimbal_cmd_data.yaw = trans_fdb.yaw + rc_now->ch4 * RC_RATIO * GIMBAL_RC_MOVE_RATIO_YAW;//上位机自瞄
-//            gimbal_cmd_data.pitch = trans_fdb.pitch + rc_now->ch2 * RC_RATIO * GIMBAL_RC_MOVE_RATIO_PIT /*- Ballistic * KB_RATIO * GIMBAL_PC_MOVE_RATIO_PIT*/;//上位机自瞄
-//
-//        }
-    /* 限制云台角度 */
+    else
+    {
+        gyro_yaw_inherit = ins.yaw_total_angle;
+        gyro_pitch_inherit = ins.pitch;
+    }
 
-//    VAL_LIMIT(gimbal_cmd_data.pitch, PIT_ANGLE_MIN, PIT_ANGLE_MAX);
     /*开环状态和遥控器归中*/
     if (gimbal_cmd_data.ctrl_mode==GIMBAL_INIT||gimbal_cmd_data.ctrl_mode==GIMBAL_RELAX)
     {
@@ -103,7 +94,6 @@ static void remote_to_cmd(void)
            gimbal_cmd_data.yaw = 0;
            break;
        case RC_MI:
-//           gimbal_cmd_data.ctrl_mode = GIMBAL_GYRO;
            if (gimbal_cmd_data.last_mode == GIMBAL_RELAX )
            {/* 判断上次状态是否为RELAX，是则先归中 */
                gimbal_cmd_data.ctrl_mode = GIMBAL_INIT;

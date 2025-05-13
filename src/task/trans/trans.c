@@ -72,14 +72,11 @@ static void tcp_send(RpyTypeDef *frame, float yaw, float pitch);
 static void tcp_input(uint8_t *recvbuf, uint32_t length);
 
 
-static void get_data(void);
 static void tcp_client_thread(void *parg);
 static uint32_t eth_default_ip_get(sLwipDev_t * const psLwipDev);
 static uint32_t eth_init(sLwipDev_t * const psLwipDev);
 static uint32_t tcp_client_reconnect(void);
 static uint32_t tcp_client_write(const uint8_t *pbuf, uint32_t length);
-static void get_data_imu(uint8_t *data);
-static uint8_t contains_string(int8_t *array, uint8_t array_len, int8_t *target);
 
 
 static sLwipDev_t sLwipDev = {0};
@@ -87,7 +84,6 @@ static struct netconn *socket = NULL; // TCP客户端套接字
 static uint8_t connect_flag = pdFALSE; // TCP客户端连接标志
 static uint8_t tcp_rx_buffer[1460]; // 接收数据缓冲区（最大1460字节）
 static uint8_t tran_data_temp[8];//保存从上位计接收的IMU数据
-struct netif eth0; // 有线网络接口
 extern struct netif *netif_object;
 
 
@@ -145,7 +141,6 @@ void tcprev_control_task(void)
             }
         } else if (recv_err == ERR_CLSD) // 服务器主动关闭连接
         {
-//            trans_fdb_data.control_mode=2;
             trans_pub_push();
             tcp_client_reconnect(); // 重新连接
         }
@@ -175,9 +170,6 @@ static uint32_t eth_init(sLwipDev_t * const psLwipDev)
      ip_addr_t gateway; // 默认网关
      ip_addr_t localip; // 本地IP地址
 
-
-    // TCPIP内核初始化
-//    tcpip_init(NULL, NULL);
 
 #if LWIP_DHCP // 如果使能了DHCP
     dhcp_task(psLwipDev);
@@ -306,61 +298,13 @@ static void tcp_client_thread(void *parg)
             i++;
         }
 
-         err_t recv_err;
-         struct netbuf *recvbuf;
          connect_flag = pdTRUE; // 连接标志置位
 
          while (connect_flag == pdTRUE) {
-//             if(gim_cmd.ctrl_mode==GIMBAL_GYRO)
-//             {
+
              trans_sub_pull();
-//             tcp_send(&rpy_tx_data, -83.51, -83.51);
              tcp_send(&rpy_tx_data, gimbal_fdb.yaw_relative_angle, gimbal_fdb.pitch_relative_angle);
-//             }
-//             i++;
-             printf("Free heap: %d\n", heap);
 
-             // 接收数据
-             recv_err = netconn_recv(socket, &recvbuf);
-             if (recv_err == ERR_OK) // 接收到数据
-             {
-                 unsigned int length = recvbuf->p->tot_len;
-                 if (length > sizeof(tcp_rx_buffer))
-                 {
-                     length = sizeof(tcp_rx_buffer); // 防止数据超出缓冲区大小
-                 }
-
-                 // 将数据拷贝到缓冲区
-                 unsigned int offset = 0;
-                 for (struct pbuf *q = recvbuf->p; q != NULL; q = q->next)
-                 {
-                     memcpy(tcp_rx_buffer + offset, q->payload, q->len);
-                     offset += q->len;
-                     if (offset >= length)
-                     {
-                         break; // 数据拷贝完成
-                     }
-                 }
-                 if (length > 0)
-                 {
-                     tcp_input(tcp_rx_buffer, length);
-                     trans_pub_push();
-                     memset(tcp_rx_buffer, 0, sizeof(tcp_rx_buffer));
-                 }
-                 netbuf_delete(recvbuf); // 释放接收缓冲区
-             } else if (recv_err == ERR_CLSD) // 服务器主动关闭连接
-             {
-//            trans_fdb_data.control_mode=2;
-                 trans_pub_push();
-                 tcp_client_reconnect(); // 重新连接
-             }
-
-//            unsigned char name[9]={"YAW+PITCH"};
-//            uint8_t data_imu[8]={0,};
-//            trans_sub_pull();
-//            get_data_imu(data_imu);
-//            tcp_client_write(name, sizeof (name));
-//            tcp_client_write(data_imu, sizeof (data_imu));
         }
         // 连接异常
         netconn_close(socket); // 关闭套接字
@@ -446,8 +390,6 @@ static uint32_t tcp_client_write(const uint8_t *pbuf, uint32_t length)
     return 0; // 发送成功
 }
 
-
-
 #endif
 
 
@@ -494,9 +436,7 @@ static void tcp_send(RpyTypeDef *frame, float yaw, float pitch)
     {
         sum += frame->DATA[i];
     }
-
     frame->SC = sum & 0xFF;
-//    frame->AC = add & 0xFF;
 
     //发送数据
     tcp_client_write(frame,14);
@@ -512,68 +452,19 @@ static void tcp_input(uint8_t *recvbuf, uint32_t length)
         memcpy(&rpy_rx_data,&recvbuf,sizeof(rpy_rx_data));
 
         int32_t temp_yaw,temp_pitch;
-
         temp_yaw = (recvbuf[3] << 24) | (recvbuf[4] << 16) | (recvbuf[5] << 8) | recvbuf[6];
         temp_pitch = (recvbuf[7] << 24) | (recvbuf[8] << 16) | (recvbuf[9] << 8) | recvbuf[10];
-
-//        temp_yaw = (recvbuf[3] ) | (recvbuf[4] << 8) | (recvbuf[5] << 16) | (recvbuf[6] << 24);
-//        temp_pitch = (recvbuf[7] ) | (recvbuf[8] << 8) | (recvbuf[9] << 16) | (recvbuf[10] << 24);
 
         trans_fdb_data.yaw = *(float *)&temp_yaw;
         trans_fdb_data.pitch =*(float *)&temp_pitch;
 
         memset(&rpy_rx_data, 0, sizeof(rpy_rx_data));
     }
-//    VAL_LIMIT(trans_fdb_data.pitch,-50,50);
-//    VAL_LIMIT(trans_fdb_data.yaw,-90,90);
+
 
 }
 
 
-
-static void get_data(void)
-{
-#ifdef SEND
-    if(recv_flag) {
-        if (!rpy_rx_data.DATA[0]) {//绝对角度控制
-            trans_fdb_data.yaw = *(int32_t *) &rpy_rx_data.DATA[1] / 1000.0;
-            trans_fdb_data.pitch = *(int32_t *) &rpy_rx_data.DATA[5] / 1000.0;
-        } else {     //相对角度控制
-            trans_fdb_data.yaw = (*(int32_t *) &rpy_rx_data.DATA[1] / 1000.0);
-            trans_fdb_data.pitch = (*(int32_t *) &rpy_rx_data.DATA[5] / 1000.0);
-            //send_data(rpy_tx_data);
-        }
-        recv_flag = 0;
-
-        uint8_t data_gim_angle[8];
-
-        uint32_t *temp_yaw = (uint32_t *) &trans_fdb_data.yaw;
-        uint32_t *temp_pitch = (uint32_t *) &trans_fdb_data.pitch;
-
-
-
-        data_gim_angle[3] = *temp_yaw >> 24;
-        data_gim_angle[2] = *temp_yaw >> 16;
-        data_gim_angle[1] = *temp_yaw >> 8;
-        data_gim_angle[0] = *temp_yaw;
-        data_gim_angle[7] = *temp_pitch >> 24;
-        data_gim_angle[6] = *temp_pitch >> 16;
-        data_gim_angle[5] = *temp_pitch >> 8;
-        data_gim_angle[4] = *temp_pitch;
-
-        CAN_send(&hcan1, 0x137, data_gim_angle);
-        }
-#endif
-
-#ifdef RECEIVE
-    uint32_t yaw_temp = (uint32_t  )tran_data_temp[0] | (((uint32_t )tran_data_temp[1]) << 8) | (((uint32_t )tran_data_temp[2]) << 16)
-                        | (((uint32_t )tran_data_temp[3]) << 24) ;;
-    uint32_t pitch_temp = (uint32_t )tran_data_temp[4] | (((uint32_t )tran_data_temp[5]) << 8) | (((uint32_t )tran_data_temp[6]) << 16)
-                          | (((uint32_t )tran_data_temp[7]) << 24) ;
-    trans_fdb_data.yaw=*((float *)&yaw_temp);
-    trans_fdb_data.pitch=*((float *)&pitch_temp);
-#endif
-}
 
 
 

@@ -23,13 +23,11 @@ void robot_init()
     // 若必须,则只允许使用 dwt 进行延时
     __disable_irq();
 
-    // Ins_task_init;
-
     OS_task_init(); // 创建基础任务
 
     mcn_topic_init(); // 话题注册初始化
 
-//    motor_task_init();
+    motor_task_init();
     cmd_task_init();
     gimbal_task_init();
     trans_task_init();

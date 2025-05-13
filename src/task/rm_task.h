@@ -63,11 +63,9 @@ void OS_task_init()
     osThreadDef(transtask, trans_task_entry, osPriorityNormal, 0, 1024);
     transTaskHandle = osThreadCreate(osThread(transtask), NULL);
 
-//    osThreadDef(tcprev_task_entry, tcprev_task_entry, osPriorityNormal, 0, 256);
-//    tcprev_TaskHandle = osThreadCreate(osThread(tcprev_task_entry), NULL);
+    osThreadDef(tcprev_task_entry, tcprev_task_entry, osPriorityNormal, 0, 256);
+    tcprev_TaskHandle = osThreadCreate(osThread(tcprev_task_entry), NULL);
 
-//    osThreadDef(djmotortask, djmotor_task_entry, osPriorityNormal, 0, 1024);
-//    djmotorTaskHandle = osThreadCreate(osThread(djmotortask), NULL);
 }
 
 __attribute__((noreturn)) void motor_task_entry(void const *argument)
@@ -101,9 +99,7 @@ __attribute__((noreturn)) void robot_task_entry(void const *argument)
 /* ------------------------------ 调试监测线程调度 ------------------------------ */
 
         cmd_control_task();
-//        chassis_control_task();
         gimbal_control_task();
-//        shoot_control_task();
         vTaskDelay(1);
 
 
@@ -122,50 +118,27 @@ __attribute__((noreturn)) void robot_task_entry(void const *argument)
 /* ------------------------------ 调试监测线程调度 ------------------------------ */
         trans_dt = dwt_get_time_ms() - trans_start;
         trans_start = dwt_get_time_ms();
-//        if (trans_dt > 1.5)
 /* ------------------------------ 调试监测线程调度 ------------------------------ */
         trans_control_task();
-//        trans_uxHighWaterMark = uxTaskGetStackHighWaterMark( transTaskHandle );
         vTaskDelayUntil(&trans_wake_time, 1);
     }
 }
 
- __attribute__((noreturn)) void djmotor_task_entry(void const *argument)
+ __attribute__((noreturn)) void tcprev_task_entry(void const *argument)
  {
-     float djmotor_start = dwt_get_time_ms();
-     uint32_t djmotor_wake_time = osKernelSysTick();
+     float tcprev_start = dwt_get_time_ms();
+     uint32_t tcprev_wake_time = osKernelSysTick();
+
      for (;;)
      {
 /* ------------------------------ 调试监测线程调度 ------------------------------ */
-         djmotor_dt = dwt_get_time_ms() - djmotor_start;
-         djmotor_start = dwt_get_time_ms();
-//         if (djmotor_dt > 1.5)
+         tcprev_dt = dwt_get_time_ms() - tcprev_start;
+         tcprev_start = dwt_get_time_ms();
 /* ------------------------------ 调试监测线程调度 ------------------------------ */
-
-//         dji_motor_control();
-
-         vTaskDelayUntil(&djmotor_wake_time, 1);
+         tcprev_control_task();
+         vTaskDelayUntil(&tcprev_wake_time, 1);
      }
  }
-
-// __attribute__((noreturn)) void tcprev_task_entry(void const *argument)
-// {
-//     float tcprev_start = dwt_get_time_ms();
-//     uint32_t tcprev_wake_time = osKernelSysTick();
-//     UBaseType_t tcprev_uxHighWaterMark;
-//
-//     for (;;)
-//     {
-///* ------------------------------ 调试监测线程调度 ------------------------------ */
-//         tcprev_dt = dwt_get_time_ms() - tcprev_start;
-//         tcprev_start = dwt_get_time_ms();
-////        if (trans_dt > 1.5)
-///* ------------------------------ 调试监测线程调度 ------------------------------ */
-//         tcprev_control_task();
-////        trans_uxHighWaterMark = uxTaskGetStackHighWaterMark( transTaskHandle );
-//         vTaskDelayUntil(&tcprev_wake_time, 1);
-//     }
-// }
 
  static void LAN8720_RESET(void)
  {

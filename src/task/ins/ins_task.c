@@ -124,7 +124,7 @@ __attribute__((noreturn)) void ins_task_entry(void const *argument)
             // NOTE: yaw轴右为正，pitch轴上为正，roll轴顺时针为正
             ins_data.yaw = ins.yaw;
             ins_data.roll = ins.roll;
-            ins_data.yaw_total_angle = -ins.yaw_total_angle;
+            ins_data.yaw_total_angle = ins.yaw_total_angle;
             ins_data.pitch = ins.pitch;
             ins_data.gyro[0] =-ins.gyro[0];
             ins_data.gyro[1] = ins.gyro[1];
@@ -135,13 +135,6 @@ __attribute__((noreturn)) void ins_task_entry(void const *argument)
             ins_data.motion_accel_b[0] = ins.motion_accel_b[0];
             ins_data.motion_accel_b[1] = ins.motion_accel_b[1];
             ins_data.motion_accel_b[2] = ins.motion_accel_b[2];
-
-//            ins_data.gyro_gim[Y]=-ins_data.gyro[Y];
-//            ins_data.gyro_gim[Z]=ins_data.gyro[Z];
-//            ins_data.yaw_gim=ins_data.yaw;
-//            ins_data.pitch_gim=-(ins_data.pitch);
-//            ins_data.yaw_total_angle_gim=ins_data.yaw_total_angle;
-
 
             mcn_publish(MCN_HUB(ins_topic), &ins_data);
         }

@@ -23,8 +23,6 @@ extern DMA_HandleTypeDef hdma_usart3_rx;
 //接收原始数据，为18个字节，给了36个字节长度，防止DMA传输越界
 uint8_t sbus_rx_buf[2][SBUS_RX_BUF_NUM];
 static rc_obj_t rc_obj[2];   // [0]:当前数据NOW,[1]:上一次的数据LAST
-// TODO: 目前遥控器发送端关闭并不会检测为丢失，只有接收端异常才会判断为离线，
-//       后续需要修改判断条件，预期效果是发送端关闭后判断为离线
 
 /**
  * @brief 遥控器sbus数据解析
@@ -53,10 +51,6 @@ int sbus_rc_decode(uint8_t *buff)
             rc_obj[NOW].ch3 = 0;
         if(rc_obj[NOW].ch4 <= 10 && rc_obj[NOW].ch4 >= -10)
             rc_obj[NOW].ch4 = 0;
-//        if(rc_obj[NOW].ch5 <= 10 && rc_obj[NOW].ch5 >= -10)
-//            rc_obj[NOW].ch5 = 0;
-//        if(rc_obj[NOW].ch6 <= 10 && rc_obj[NOW].ch6 >= -10)
-//            rc_obj[NOW].ch6 = 0;
         /* 拨杆值获取 */
         rc_obj[NOW].sw1 =((buff[6] >> 4 | buff[7] << 4) & 0x07FF);
         rc_obj[NOW].sw2 =((buff[7] >> 7 | buff[8] << 1 | buff[9] << 9) & 0x07FF);
@@ -67,20 +61,15 @@ int sbus_rc_decode(uint8_t *buff)
         rc_obj[NOW].sw7 = (buff[14] >> 6 | (buff[15] << 2 )  | buff[16] << 10 ) & 0x07FF;
         rc_obj[NOW].sw8 = (buff[16] >> 1 | (buff[17] << 7 )) & 0x07FF;
 
-
         /* 旋钮值获取 */
         rc_obj[NOW].ld = (buff[17] >> 4 | (buff[18] << 4 )) & 0x07FF;
         rc_obj[NOW].rd = (buff[18] >> 7 | (buff[19] << 1 )  | buff[20] <<  9 ) & 0x07FF;
-//        rc_obj[NOW].sw9 = (buff[21] >> 2 | (buff[22] << 6 )) & 0x07FF;
-//        rc_obj[NOW].sw10 = (buff[22] >> 5 | (buff[23] << 3 )) & 0x07FF;
 
         /* 遥控器异常值处理，函数直接返回 */
         if ((abs(rc_obj[NOW].ch1) > RC_MAX_VALUE) || \
         (abs(rc_obj[NOW].ch2) > RC_MAX_VALUE) || \
         (abs(rc_obj[NOW].ch3) > RC_MAX_VALUE) || \
         (abs(rc_obj[NOW].ch4) > RC_MAX_VALUE) )
-//        (abs(rc_obj[NOW].ch5) > RC_MAX_VALUE) || \
-//        (abs(rc_obj[NOW].ch6) > RC_MAX_VALUE))
         {
             memset(&rc_obj[NOW], 0, sizeof(rc_obj_t));
             return -1;
